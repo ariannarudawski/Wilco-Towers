@@ -3,93 +3,161 @@
 //--------------------------------------------------------------
 void ofApp::setup()
 {
-	ofSetFrameRate(30.0);
-	ofBackground(199, 179, 149);
-	ofSetBackgroundAuto(true);
 	ofSetVerticalSync(true);
+	ofSetFrameRate(30.0);
+	ofBackground(wilcoColor);
+	ofSetBackgroundAuto(true);
+	ofSetWindowShape(1000, 1000);
 
 	// set up camera
 
-	MainCamera.setGlobalPosition(glm::vec3(0.0f, 1000.0f, -600.0f));
+	MainCamera.setGlobalPosition(glm::vec3(0.0f, 800, -600.0f));
 	MainCamera.lookAt(glm::vec3(0, 0, 0));
 
-	// tower 0 
+	// set up two towers
 
-	tower0 = new ofMesh[numDiscsPerTower]; 
+	towerStructure = new ofMesh**[2];
+	towerWalls = new ofMesh**[2];
 
+	float zStep = towerHeight / numFloorsPerTower;
 	ofPoint start = ofVec3f(0, 0, 0);
-	float zStep = towerHeight / numDiscsPerTower;
+	//ofVec3f startPositions[2] = { ofVec3f(173, -700, -100), ofVec3f(-255, 100, 0) };
+	ofVec3f startPositions[2] = { ofVec3f(193, -700, -100), ofVec3f(-205, -50, 0) };
 
-	ofColor colorDisc = ofColor(0, 0, 0); 
-	float rStep = 199 / numDiscsPerTower;
-	float gStep = 179 / numDiscsPerTower;
-	float bStep = 149 / numDiscsPerTower;
-
-	for (int d = 0; d < numDiscsPerTower; d++)
+	for (int t = 0; t < 2; t++)
 	{
-		// tower 0 is the one off in the distance
+		towerStructure[t] = new ofMesh *[numFloorsPerTower];
+		towerWalls[t] = new ofMesh *[numFloorsPerTower - 1];
 
-		start.set(200, -700, -zStep * d);
-		colorDisc.set(ofColor(rStep * d, gStep * d, bStep * d));
-
-		tower0[d].setMode(OF_PRIMITIVE_TRIANGLE_FAN); 
-		float circleX, circleY, circleZ; 
-
-		for (int t = 0; t < numVertsPerDisc; ++t)
+		for (int f = 0; f < numFloorsPerTower; f++)
 		{
-			float vertAngle = t * TWO_PI / numVertsPerDisc;
+			start.set(startPositions[t] + ofVec3f(0, 0, -zStep * f));
 
-			circleX = start.x + baseRadius * cos(vertAngle);
-			circleY = start.y + baseRadius * sin(vertAngle);
-			circleZ = start.z;
+			towerStructure[t][f] = new ofMesh[numCirclesPerFloor];
 
-			ofPoint point = ofVec3f(circleX, circleY, circleZ);
+			for (int c = 0; c < numCirclesPerFloor; ++c)
+			{
+				towerStructure[t][f][c].setMode(OF_PRIMITIVE_TRIANGLE_FAN);
 
-			tower0[d].addVertex(point);
-			tower0[d].addColor(colorDisc);
+				// create floors/ceilings (won't render, but will use to make walls
+
+				float circleX, circleY, circleZ;
+				float subCircleX, subCircleY, subCircleZ;
+
+				float vertAngle = c * TWO_PI / numCirclesPerFloor;
+
+				circleX = start.x + baseRadius * cos(vertAngle);
+				circleY = start.y + baseRadius * sin(vertAngle);
+				circleZ = start.z;
+
+				ofPoint subCircleStart = ofVec3f(circleX, circleY, circleZ);
+
+				for (int v = 0; v < numVertsPerCircle; ++v)
+				{
+					float vertAngleSubCircle = v * TWO_PI / numVertsPerCircle;
+
+					subCircleX = subCircleStart.x + subCircleRadius * cos(vertAngleSubCircle);
+					subCircleY = subCircleStart.y + subCircleRadius * sin(vertAngleSubCircle);
+					subCircleZ = subCircleStart.z;
+
+					ofPoint point = ofVec3f(subCircleX, subCircleY, subCircleZ);
+					towerStructure[t][f][c].addVertex(point);
+				}
+			}
+		}
+
+		// make walls
+
+		for (int f = 0; f < numFloorsPerTower - 1; f++)
+		{
+			towerWalls[t][f] = new ofMesh[numCirclesPerFloor];
+
+			for (int c = 0; c < numCirclesPerFloor; c++)
+			{
+				// add vertices to towerwalls[f], pull from towerstructure[f] and towerstructure[f+1]
+				towerWalls[t][f][c].setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
+
+				for (int v = 0; v < numVertsPerCircle; v++)
+				{
+					towerWalls[t][f][c].addVertex(towerStructure[t][f][c].getVertex(v));
+					towerWalls[t][f][c].addVertex(towerStructure[t][f + 1][c].getVertex(v));
+				}
+
+				// add the first two verts again to complete the circle
+
+				towerWalls[t][f][c].addVertex(towerStructure[t][f][c].getVertex(0));
+				towerWalls[t][f][c].addVertex(towerStructure[t][f + 1][c].getVertex(0));
+			}
 		}
 	}
 
-	// tower 1
+	// set up sound
 
-	tower1 = new ofMesh[numDiscsPerTower];
+	song.load("heavymetaldrummer.wav");
+	song.setLoop(false);
+	song.setVolume(0.8f);
+	playing = false;
 
-	for (int d = 0; d < numDiscsPerTower; d++)
+	// we're going to get more data then we need 
+	// and only use the top quarter of the frequency spectrum
+	// (this part is more visually interesting)
+
+	fftSampleSize = numFloorsPerTower * 4;
+	fftRaw = new float[fftSampleSize];
+	fftSmooth = new float[fftSampleSize];
+
+	for (int i = 0; i < fftSampleSize; i++)
 	{
-		// tower 1 is closer and to the right
-
-		start.set(-200, 100, -zStep * d);
-		colorDisc.set(ofColor(rStep * d, gStep * d, bStep * d));
-
-		tower1[d].setMode(OF_PRIMITIVE_TRIANGLE_FAN);
-		float circleX, circleY, circleZ;
-
-		for (int t = 0; t < numVertsPerDisc; ++t)
-		{
-			float vertAngle = t * TWO_PI / numVertsPerDisc;
-
-			circleX = start.x + baseRadius * cos(vertAngle);
-			circleY = start.y + baseRadius * sin(vertAngle);
-			circleZ = start.z;
-
-			ofPoint point = ofVec3f(circleX, circleY, circleZ);
-
-			tower1[d].addVertex(point);
-			tower1[d].addColor(colorDisc);
-		}
+		fftRaw[i] = 0.0f;
+		fftSmooth[i] = 0.0f;
 	}
 }
 
 //--------------------------------------------------------------
 void ofApp::update()
 {
-	// update build counters
+	// update sound 
 
-	if (tower0building)
-		buildCounter0++; 
+	ofSoundUpdate();
 
-	if (tower1building)
-		buildCounter1++; 
+	// update fft
+
+	fftRaw = ofSoundGetSpectrum(fftSampleSize);
+
+	for (int c = 0; c < fftSampleSize; c++)
+	{
+		fftSmooth[c] *= 0.96f;
+
+		if (fftSmooth[c] < fftRaw[c])
+		{
+			fftSmooth[c] = fftRaw[c];
+		}
+	}
+
+	// update disc colors' brightness based on sound 
+
+	for (int t = 0; t < 2; t++)
+	{
+		for (int f = 0; f < numFloorsPerTower - 1; f++)
+		{
+			for (int c = 0; c < numCirclesPerFloor; c++)
+			{
+				towerWalls[t][f][c].clearColors();
+
+				ofColor discColor = wilcoColor;
+				float fftAdjust = fftSmooth[f] * 300 + 15;
+				discColor.setBrightness(fftAdjust);
+
+				for (int i = 0; i < numVertsPerCircle * 2 + 2; i++)
+				{
+					if (f != (numFloorsPerTower - 1))
+					{
+						towerWalls[t][f][c].addColor(discColor);
+					}
+				}
+			}
+		}
+	}
 }
 
 //--------------------------------------------------------------
@@ -97,31 +165,20 @@ void ofApp::draw()
 {
 	MainCamera.begin();
 
-	// tower0
+	// draw towers
 
-	int discsToBuild = buildCounter0 / 5; 
-
-	if (discsToBuild > numDiscsPerTower)
-		discsToBuild = numDiscsPerTower; 
-
-	for (int i = 0; i < discsToBuild; i++)
+	for (int t = 0; t < 2; t++)
 	{
-		tower0[i].draw(); 
+		for (int f = 0; f < numFloorsPerTower - 1; f++)
+		{
+			for (int c = 0; c < numCirclesPerFloor; c++)
+			{
+				towerWalls[t][f][c].draw();
+			}
+		}
 	}
 
-	// tower1
-
-	discsToBuild = buildCounter1 / 5;
-
-	if (discsToBuild > numDiscsPerTower)
-		discsToBuild = numDiscsPerTower;
-
-	for (int i = 0; i < discsToBuild; i++)
-	{
-		tower1[i].draw();
-	}
-
-	MainCamera.end(); 
+	MainCamera.end();
 }
 
 //--------------------------------------------------------------
@@ -130,64 +187,66 @@ void ofApp::keyPressed(int key)
 	switch (key)
 	{
 	case ' ':
-		if (!tower0building && !tower1building)
+		if (!playing)
 		{
-			tower0building = true;
+			playing = true;
+			song.play();
 		}
-		else if (tower0building && !tower1building)
+		else
 		{
-			tower1building = true;
+			playing = false;
+			song.stop();
 		}
 		break;
 	}
 }
 
 //--------------------------------------------------------------
-void ofApp::keyReleased(int key){
+void ofApp::keyReleased(int key) {
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseMoved(int x, int y ){
+void ofApp::mouseMoved(int x, int y) {
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseDragged(int x, int y, int button){
+void ofApp::mouseDragged(int x, int y, int button) {
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mousePressed(int x, int y, int button){
+void ofApp::mousePressed(int x, int y, int button) {
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseReleased(int x, int y, int button){
+void ofApp::mouseReleased(int x, int y, int button) {
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseEntered(int x, int y){
+void ofApp::mouseEntered(int x, int y) {
 
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseExited(int x, int y){
+void ofApp::mouseExited(int x, int y) {
 
 }
 
 //--------------------------------------------------------------
-void ofApp::windowResized(int w, int h){
+void ofApp::windowResized(int w, int h) {
 
 }
 
 //--------------------------------------------------------------
-void ofApp::gotMessage(ofMessage msg){
+void ofApp::gotMessage(ofMessage msg) {
 
 }
 
 //--------------------------------------------------------------
-void ofApp::dragEvent(ofDragInfo dragInfo){ 
+void ofApp::dragEvent(ofDragInfo dragInfo) {
 
 }

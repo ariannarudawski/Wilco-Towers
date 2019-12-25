@@ -29,21 +29,25 @@ private:
 
 	// towers
 
-	float towerHeight = 800.0f;
+	ofColor wilcoColor = ofColor(199, 179, 149);
 
-	int numDiscsPerTower = 100; 
-	int numVertsPerDisc = 100;
+	float towerHeight = 600.0f;
 
-	float baseRadius = 200.0f;
+	int numCirclesPerFloor = 16;
+	int numFloorsPerTower = 15; 
+	int numVertsPerCircle = 40;
 
-	ofMesh * tower0;
-	ofMesh * tower1;
+	float baseRadius = 157.0f;
+	float subCircleRadius = 43.0f;
 
-	// build "animation"
+	ofMesh *** towerStructure;
+	ofMesh *** towerWalls;  
 
-	bool tower0building;
-	bool tower1building; 
+	// song information
 
-	int buildCounter0 = 0;
-	int buildCounter1 = 0;		
+	ofSoundPlayer song;
+	bool playing;
+	int fftSampleSize;
+	float * fftRaw;
+	float * fftSmooth;
 };
