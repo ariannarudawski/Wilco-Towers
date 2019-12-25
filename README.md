@@ -1,14 +1,17 @@
 # Wilco-Towers 
 
-Inspired by the Marina Towers in Chicago, specifically as they appear in the album artwork for Wilcoís ìYankee Hotel Foxtrotî. 
+An audiovisual scene inspired by the Marina Towers in Chicago, very specifically as they appear in the album artwork for [Wilco](https://wilcoworld.net/)‚Äôs [‚ÄúYankee Hotel Foxtrot‚Äù](https://open.spotify.com/album/0rPtXOMN42nsLDiShvGamv). 
+
+If you're trying this out, make sure to include a song file of choice in Wilco-Towers/bin/data. File name is hard set in ofApp's setup function. 
+
+**Resources**
 
 Created with Visual Studio, using the openFrameworks toolkit.
-
 https://github.com/openframeworks/openFrameworks
 
-Towers created with ofMesh polygons.
+Required viewing: this adorable clip of "Heavy Metal Drummer" from the documentary about this album.
+https://www.youtube.com/watch?v=0f4s427bx7c 
 
-https://openframeworks.cc/documentation/3d/ofMesh/
 
 
 
