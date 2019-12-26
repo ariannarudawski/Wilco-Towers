@@ -2,7 +2,7 @@
 
 An audiovisual scene inspired by the Marina Towers in Chicago, very specifically as they appear in the album artwork for [Wilco](https://wilcoworld.net/)’s [“Yankee Hotel Foxtrot”](https://open.spotify.com/album/0rPtXOMN42nsLDiShvGamv). 
 
-If you're trying this out, make sure to include a song file of choice in Wilco-Towers/bin/data. File name is hard set in ofApp's setup function. 
+If you're trying this out, make sure to include a song file of choice in Wilco-Towers/bin/data. File name is hard set in ofApp's setup function. I used "Heavy Metal Drummer" in [this demo](https://www.instagram.com/p/B6gaSNAA-H83UVHvbSmhCR4CjRYRK4_MUQSHTk0/). 
 
 **Resources**
 
